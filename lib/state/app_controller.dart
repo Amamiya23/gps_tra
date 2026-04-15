@@ -2,6 +2,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/gpx_track_point.dart';
+import '../models/geo_match.dart';
+import '../models/match_outcome.dart';
 import '../models/process_result.dart';
 import '../models/selected_photo.dart';
 import '../services/exif_channel_service.dart';
@@ -15,12 +17,84 @@ class AppController extends ChangeNotifier {
     LocationMatchService? matchService,
   })  : _gpxParser = gpxParser ?? GpxParserService(),
         _exifService = exifService ?? ExifChannelService(),
+        _matchService = matchService ??
+            const LocationMatchService(maxGap: Duration(minutes: 5));
+
+  AppController.preview()
+      : _gpxParser = GpxParserService(),
+        _exifService = ExifChannelService(),
         _matchService =
-            matchService ?? const LocationMatchService(maxGap: Duration(minutes: 5));
+            const LocationMatchService(maxGap: Duration(minutes: 5)) {
+    _trackPoints = List.unmodifiable([
+      GpxTrackPoint(
+        latitude: 31.230437,
+        longitude: 121.473701,
+        altitude: 12.5,
+        time: DateTime.utc(2026, 4, 15, 8, 0, 0),
+      ),
+      GpxTrackPoint(
+        latitude: 31.231120,
+        longitude: 121.474520,
+        altitude: 13.2,
+        time: DateTime.utc(2026, 4, 15, 8, 1, 0),
+      ),
+    ]);
+    _photos = List.unmodifiable([
+      SelectedPhoto(
+        name: 'IMG_20260415_080015.jpg',
+        source: 'preview-1',
+        rawOriginalDate: '2026:04:15 08:00:15',
+        originalDate: DateTime.utc(2026, 4, 15, 8, 0, 15),
+        preview: MatchOutcome(
+          reason: '已匹配到最近轨迹点',
+          adjustedPhotoTime: DateTime.utc(2026, 4, 15, 8, 0, 15),
+          location: GeoMatch(
+            latitude: 31.230437,
+            longitude: 121.473701,
+            altitude: 12.5,
+            timestamp: DateTime.utc(2026, 4, 15, 8, 0, 0),
+          ),
+        ),
+      ),
+      SelectedPhoto(
+        name: 'IMG_20260415_080315.jpg',
+        source: 'preview-2',
+        rawOriginalDate: '2026:04:15 08:03:15',
+        originalDate: DateTime.utc(2026, 4, 15, 8, 3, 15),
+        hasGps: true,
+        preview: const MatchOutcome(reason: '超出最大时间差，未匹配到轨迹点'),
+      ),
+      const SelectedPhoto(
+        name: 'IMG_20260415_080500.jpg',
+        source: 'preview-3',
+        loadError: '读取 EXIF 失败: 预览环境中不加载原始文件',
+      ),
+    ]);
+    _results = List.unmodifiable([
+      ProcessResult(
+        photoName: 'IMG_20260415_080015.jpg',
+        success: true,
+        message: 'GPS EXIF 写入成功',
+        location: GeoMatch(
+          latitude: 31.230437,
+          longitude: 121.473701,
+          altitude: 12.5,
+          timestamp: DateTime.utc(2026, 4, 15, 8, 0, 0),
+        ),
+      ),
+      const ProcessResult(
+        photoName: 'IMG_20260415_080315.jpg',
+        success: false,
+        message: '没有匹配到可写入的位置',
+      ),
+    ]);
+    _gpxFileName = 'sample_track.gpx';
+    _statusText = '预览模式，展示静态样例数据';
+  }
 
   final GpxParserService _gpxParser;
   final ExifChannelService _exifService;
-  final LocationMatchService _matchService;
+  LocationMatchService _matchService;
 
   List<GpxTrackPoint> _trackPoints = const [];
   List<SelectedPhoto> _photos = const [];
@@ -31,6 +105,7 @@ class AppController extends ChangeNotifier {
   String _statusText = '等待选择 GPX 和 JPG';
   String _offsetInput = '00:00:00';
   Duration _offset = Duration.zero;
+  bool _overwriteExistingGps = true;
   String? _pendingMessage;
 
   List<GpxTrackPoint> get trackPoints => _trackPoints;
@@ -42,14 +117,21 @@ class AppController extends ChangeNotifier {
   String get statusText => _statusText;
   String get offsetInput => _offsetInput;
   Duration get offset => _offset;
+  int get maxGapMinutes => _matchService.maxGap.inMinutes;
+  bool get overwriteExistingGps => _overwriteExistingGps;
 
   int get matchedPreviewCount =>
       _photos.where((photo) => photo.preview?.matched == true).length;
 
-  int get writablePhotoCount => _photos.where((photo) => photo.canWrite).length;
+  int get writablePhotoCount => _photos.where(_canWritePhoto).length;
+
+  int get photosWithGpsCount => _photos.where((photo) => photo.hasGps).length;
 
   bool get canProcess =>
-      !_isBusy && _trackPoints.isNotEmpty && _photos.isNotEmpty && writablePhotoCount > 0;
+      !_isBusy &&
+      _trackPoints.isNotEmpty &&
+      _photos.isNotEmpty &&
+      writablePhotoCount > 0;
 
   String? takeMessage() {
     final value = _pendingMessage;
@@ -103,7 +185,8 @@ class AppController extends ChangeNotifier {
         final picked = result.files[index];
         final source = picked.identifier ?? picked.path;
         _progress = (index + 1) / result.files.length;
-        _statusText = '读取元数据 ${index + 1}/${result.files.length}: ${picked.name}';
+        _statusText =
+            '读取元数据 ${index + 1}/${result.files.length}: ${picked.name}';
         notifyListeners();
 
         if (source == null || source.isEmpty) {
@@ -182,6 +265,28 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  String? updateSettings({
+    required String offsetInput,
+    required int maxGapMinutes,
+    required bool overwriteExistingGps,
+  }) {
+    final parsed = _parseOffset(offsetInput);
+    if (parsed == null) {
+      return '偏移格式无效，请使用类似 -08:00:00 或 00:15:30。';
+    }
+
+    _offsetInput = offsetInput.trim();
+    _offset = parsed;
+    _overwriteExistingGps = overwriteExistingGps;
+    _matchService = LocationMatchService(
+      maxGap: Duration(minutes: maxGapMinutes.clamp(1, 30)),
+    );
+    _refreshPreviews();
+    _setMessage('设置已更新。');
+    notifyListeners();
+    return null;
+  }
+
   Future<void> processPhotos() async {
     if (!canProcess) {
       _setMessage('请先选择 GPX 和可处理的 JPG。');
@@ -191,7 +296,7 @@ class AppController extends ChangeNotifier {
 
     await _runBusy('准备写入 GPS EXIF...', () async {
       final output = <ProcessResult>[];
-      final writablePhotos = _photos.where((photo) => photo.canWrite).toList();
+      final writablePhotos = _photos.where(_canWritePhoto).toList();
 
       for (var index = 0; index < writablePhotos.length; index++) {
         final photo = writablePhotos[index];
@@ -215,7 +320,8 @@ class AppController extends ChangeNotifier {
           await _exifService.writeGpsMetadata(
             source: photo.source,
             location: preview.location!,
-            gpsTimestamp: preview.adjustedPhotoTime ?? preview.location!.timestamp,
+            gpsTimestamp:
+                preview.adjustedPhotoTime ?? preview.location!.timestamp,
           );
           output.add(
             ProcessResult(
@@ -313,5 +419,12 @@ class AppController extends ChangeNotifier {
 
   void _setMessage(String message) {
     _pendingMessage = message;
+  }
+
+  bool _canWritePhoto(SelectedPhoto photo) {
+    if (!photo.canWrite) {
+      return false;
+    }
+    return _overwriteExistingGps || !photo.hasGps;
   }
 }

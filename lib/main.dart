@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_theme.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -14,10 +15,7 @@ class GpxPhotoGeotaggerApp extends StatelessWidget {
     return MaterialApp(
       title: 'GPX 照片定位器',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
       home: const HomeScreen(),
     );
   }
