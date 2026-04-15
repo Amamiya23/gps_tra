@@ -14,9 +14,9 @@ void main() {
   testWidgets('renders app shell', (WidgetTester tester) async {
     await tester.pumpWidget(const GpxPhotoGeotaggerApp());
 
-    expect(find.text('轨迹写入'), findsOneWidget);
-    expect(find.text('把轨迹直接补回照片'), findsOneWidget);
-    expect(find.text('开始写入'), findsOneWidget);
-    expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
+    expect(find.text('照片轨迹写入'), findsWidgets);
+    expect(find.text('选择 GPX 轨迹'), findsOneWidget);
+    expect(find.text('开始写入'), findsNothing);
+    expect(find.byIcon(Icons.settings), findsOneWidget);
   });
 }

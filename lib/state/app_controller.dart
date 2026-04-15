@@ -1,5 +1,5 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../models/gpx_track_point.dart';
 import '../models/geo_match.dart';
@@ -107,6 +107,7 @@ class AppController extends ChangeNotifier {
   Duration _offset = Duration.zero;
   bool _overwriteExistingGps = true;
   String? _pendingMessage;
+  ThemeMode _themeMode = ThemeMode.system;
 
   List<GpxTrackPoint> get trackPoints => _trackPoints;
   List<SelectedPhoto> get photos => _photos;
@@ -119,6 +120,12 @@ class AppController extends ChangeNotifier {
   Duration get offset => _offset;
   int get maxGapMinutes => _matchService.maxGap.inMinutes;
   bool get overwriteExistingGps => _overwriteExistingGps;
+  ThemeMode get themeMode => _themeMode;
+
+  void updateThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    notifyListeners();
+  }
 
   int get matchedPreviewCount =>
       _photos.where((photo) => photo.preview?.matched == true).length;

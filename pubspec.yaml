@@ -10,6 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  dynamic_color: ^1.7.0
   file_picker: ^11.0.2
   path: ^1.9.0
   xml: ^6.6.1
@@ -21,3 +22,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansCJKsc-Regular.otf
+          weight: 400
+        - asset: assets/fonts/NotoSansCJKsc-Medium.otf
+          weight: 500
+    - family: NotoSerifSC
+      fonts:
+        - asset: assets/fonts/NotoSerifCJKsc-Bold.otf
+          weight: 700
