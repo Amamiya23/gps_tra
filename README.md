@@ -1,59 +1,165 @@
-# GPX Photo Geotagger
+# TrackWrite
 
-Flutter Android app for adding GPS EXIF data to JPG photos by matching capture time against a GPX track.
+`TrackWrite` 是一个面向摄影用户的 Android 工具应用，用来把轨迹位置写回照片。
 
-## Implemented scope
+它主要解决这样一类场景：
 
-- Import 1 GPX file
-- Select multiple JPG/JPEG files
-- Read `DateTimeOriginal` / fallback EXIF time from each photo
-- Apply a manual time offset such as `-08:00:00`
-- Match each photo against GPX points with linear interpolation
-- Overwrite the original JPG GPS EXIF metadata
-- Show preview and processing results
+- 旅行、扫街、徒步或拍摄结束后，手里有一份 GPX 轨迹和一批 JPG 照片
+- 照片本身没有 GPS，或者想根据更准确的轨迹重新补全位置
+- 希望在手机上直接完成轨迹导入、照片匹配、位置写回，而不是再回到电脑上处理
 
-## Project notes
+项目基于 Flutter 开发，当前目标平台为 Android，整体强调离线、本地处理、工具化体验。
 
-The Android scaffold has been generated locally and the project has been verified with:
+## 主要功能
+
+- 导入外部 GPX 文件
+- 选择多张 JPG/JPEG 照片
+- 读取照片 EXIF 时间信息
+- 通过相机时间校准修正拍摄时间偏差
+- 按最大时间差将照片与轨迹点匹配
+- 支持将位置写回原图，或导出带定位信息的照片副本
+- 支持跳过或覆盖已有 GPS 信息的照片
+- 在应用内记录轨迹，并保存历史轨迹
+- 支持将应用内轨迹直接用于照片写入
+- 支持导出和分享已记录的 GPX 轨迹
+
+## 当前界面结构
+
+应用当前包含 3 个主要页面：
+
+- `轨迹记录`
+  用于请求定位权限、开始/暂停/停止记录轨迹，并管理历史轨迹
+- `写入位置`
+  用于选择轨迹、选择照片、预览匹配结果并批量写入位置
+- `工具设置`
+  用于调整记录频率、时间校准、最大时间差、写入方式、导出位置、外观等设置
+
+## 使用流程
+
+### 方式一：导入外部轨迹后写入照片
+
+1. 在 `写入位置` 页面选择外部 GPX 文件
+2. 选择需要处理的 JPG 照片
+3. 根据需要调整 `相机时间校准` 和 `允许的最大时间差`
+4. 确认写入方式
+5. 预览匹配结果后执行写入
+
+### 方式二：先在 app 内记录轨迹，再用于写入
+
+1. 在 `轨迹记录` 页面授予定位权限
+2. 开始记录轨迹
+3. 结束后保存轨迹到历史列表
+4. 在历史轨迹里选择 `用于照片写入`
+5. 跳转到 `写入位置` 页面继续处理照片
+
+## 权限与系统行为
+
+应用当前主要依赖以下 Android 能力：
+
+- 前台定位权限
+- 后台定位权限
+- 系统定位服务
+- 文档/媒体选择器返回的照片读写授权
+
+说明：
+
+- 首次进入应用时会尝试申请前台定位权限
+- 后台定位通常需要在系统权限页面中进一步开启
+- 当系统定位服务关闭时，应用会引导用户跳转到系统定位设置
+- 照片写入优先使用系统选择器返回的可写 URI，避免不必要的文件权限申请
+
+## 技术栈
+
+- Flutter
+- Dart
+- Kotlin
+- Material 3
+- `xml`：解析 GPX
+- `shared_preferences`：保存本地设置
+- `sqflite`：保存历史轨迹与草稿
+- `file_picker`：选择 GPX 和照片
+- `share_plus`：分享导出的轨迹文件
+
+## 项目结构
+
+```text
+lib/
+  main.dart                  应用入口
+  screens/                   页面
+  state/                     状态控制器
+  services/                  GPX、EXIF、定位、导出等服务
+  models/                    数据模型
+  repositories/              本地数据存储
+
+android/
+  app/src/main/kotlin/       Android 原生实现
+
+docs/
+  ANDROID_STUDIO_RUN.md      Android Studio 运行说明
+```
+
+## 本地开发
+
+安装依赖：
 
 ```bash
-/home/cat/flutter/bin/flutter pub get
-/home/cat/flutter/bin/flutter analyze
-/home/cat/flutter/bin/flutter test
+flutter pub get
 ```
 
-To run from terminal:
+运行应用：
 
 ```bash
-/home/cat/flutter/bin/flutter run
+flutter run
 ```
 
-If `flutter create` rewrites `android/app/src/main/kotlin/.../MainActivity.kt`, restore the version from this workspace because it contains the EXIF method channel implementation.
+静态检查：
 
-Android Studio instructions are in `docs/ANDROID_STUDIO_RUN.md`.
-
-## Android setup detail
-
-The Android app needs `androidx.exifinterface:exifinterface` in the app module dependencies if it is not already present in the generated Flutter project.
-
-Gradle snippet:
-
-```gradle
-implementation "androidx.exifinterface:exifinterface:1.3.7"
+```bash
+flutter analyze
 ```
 
-## Time offset behavior
+运行测试：
 
-The offset is applied directly to the EXIF capture time before matching to GPX timestamps.
+```bash
+flutter test
+```
 
-Example:
+构建 Android 安装包：
 
-- Photo EXIF time: `2026:04:13 13:26:41`
-- GPX time is UTC
-- If the camera was set to China local time, try `-08:00:00`
+```bash
+flutter build apk --release --split-per-abi
+```
 
-## Storage behavior
+如果用于正式分发，建议构建 `AAB`：
 
-- GPX is read from the file selected by the user
-- JPG files are written back to the original selected document URI when Android provides one
-- Processing is intended to happen in the same app session after selecting files
+```bash
+flutter build appbundle --release
+```
+
+## Android 原生说明
+
+项目中 Android 侧包含一些 Flutter 默认模板之外的实现，主要包括：
+
+- EXIF 读取与 GPS 写入
+- 轨迹记录相关的 MethodChannel / EventChannel
+- 后台轨迹记录服务
+- Android 权限与系统设置跳转
+
+因此如果重新生成 Android 工程模板，需特别留意以下目录中的实现不要被覆盖：
+
+- [android/app/src/main/kotlin/com/amamiya/trackwrite](/D:/Amamiya/Program/gps_tra/android/app/src/main/kotlin/com/amamiya/trackwrite)
+
+## 相关文档
+
+- [Android Studio 运行说明](/D:/Amamiya/Program/gps_tra/docs/ANDROID_STUDIO_RUN.md)
+
+## 项目定位
+
+`TrackWrite` 不是地图社交产品，也不是运动打卡产品。
+
+它更像一个稳定、直接、低噪音的系统工具：
+
+- 先完成操作，再解释
+- 关注高频使用场景
+- 尽量减少无效点击
+- 让导入、记录、写入、异常状态都足够清晰
