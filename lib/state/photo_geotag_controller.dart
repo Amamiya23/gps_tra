@@ -152,9 +152,7 @@ class PhotoGeotagController extends ChangeNotifier {
   int get writablePhotoCount => _photos.where(_canWritePhoto).length;
   int get photosWithGpsCount => _photos.where((photo) => photo.hasGps).length;
   bool get isReadyToProcess =>
-      _trackPoints.isNotEmpty &&
-      _photos.isNotEmpty &&
-      writablePhotoCount > 0;
+      _trackPoints.isNotEmpty && _photos.isNotEmpty && writablePhotoCount > 0;
   bool get canProcess => !_isBusy && isReadyToProcess;
 
   Future<void> initialize() async {
@@ -162,15 +160,16 @@ class PhotoGeotagController extends ChangeNotifier {
     _temporaryDirectoryPath = (await getTemporaryDirectory()).path;
     _offsetInput = _preferences?.getString(_offsetInputKey) ?? _offsetInput;
     _offset = _parseOffset(_offsetInput) ?? Duration.zero;
-    final storedMaxGapMinutes =
-        _preferences?.getInt(_maxGapMinutesKey) ?? _matchService.maxGap.inMinutes;
-    _overwriteExistingGps =
-        _preferences?.getBool(_overwriteExistingGpsKey) ?? _overwriteExistingGps;
+    final storedMaxGapMinutes = _preferences?.getInt(_maxGapMinutesKey) ??
+        _matchService.maxGap.inMinutes;
+    _overwriteExistingGps = _preferences?.getBool(_overwriteExistingGpsKey) ??
+        _overwriteExistingGps;
     _exportFolderName =
         _preferences?.getString(_exportFolderNameKey) ?? _exportFolderName;
     _exportFileSuffix =
         _preferences?.getString(_exportFileSuffixKey) ?? _exportFileSuffix;
-    _writeToOriginal = (_preferences?.getString(_writeModeKey) ?? 'copy') == 'original';
+    _writeToOriginal =
+        (_preferences?.getString(_writeModeKey) ?? 'copy') == 'original';
     _matchService = LocationMatchService(
       maxGap: Duration(minutes: storedMaxGapMinutes.clamp(1, 30)),
     );
@@ -236,16 +235,17 @@ class PhotoGeotagController extends ChangeNotifier {
   }
 
   Future<void> pickPhotos() async {
+    final pickedItems = await _pickPhotoSources();
+
+    if (pickedItems.isEmpty) {
+      return;
+    }
+
     await _runBusy('读取照片元数据中...', () async {
       final previousPhotos = _photos;
       final selected = <SelectedPhoto>[];
       final seenSources = <String>{};
       final retainedCachePaths = <String>{};
-      final pickedItems = await _pickPhotoSources();
-
-      if (pickedItems.isEmpty) {
-        return;
-      }
 
       _totalProcessCount = pickedItems.length;
       for (var index = 0; index < pickedItems.length; index++) {
@@ -254,7 +254,8 @@ class PhotoGeotagController extends ChangeNotifier {
         final source = picked.writeSource;
         _currentProcessCount = index + 1;
         _progress = (index + 1) / pickedItems.length;
-        _statusText = '读取元数据 ${index + 1}/${pickedItems.length}: ${picked.name}';
+        _statusText =
+            '读取元数据 ${index + 1}/${pickedItems.length}: ${picked.name}';
         notifyListeners();
 
         if (source == null || source.isEmpty) {
@@ -378,7 +379,8 @@ class PhotoGeotagController extends ChangeNotifier {
     );
     unawaited(_preferences?.setString(_exportFolderNameKey, _exportFolderName));
     unawaited(_preferences?.setString(_exportFileSuffixKey, _exportFileSuffix));
-    unawaited(_preferences?.setString(_writeModeKey, _writeToOriginal ? 'original' : 'copy'));
+    unawaited(_preferences?.setString(
+        _writeModeKey, _writeToOriginal ? 'original' : 'copy'));
     _refreshPreviews();
     _setMessage('设置已更新。');
     notifyListeners();
@@ -392,7 +394,8 @@ class PhotoGeotagController extends ChangeNotifier {
       return;
     }
 
-    await _runBusy(_writeToOriginal ? '准备写回原图...' : '准备导出带 GPS 的照片副本...', () async {
+    await _runBusy(_writeToOriginal ? '准备写回原图...' : '准备导出带 GPS 的照片副本...',
+        () async {
       final output = <ProcessResult>[];
       final writablePhotos = _photos.where(_canWritePhoto).toList();
 
@@ -461,7 +464,9 @@ class PhotoGeotagController extends ChangeNotifier {
     }
     if (_trackPoints.isEmpty) {
       _photos = List.unmodifiable(
-        _photos.map((photo) => photo.copyWith(clearPreview: true)).toList(growable: false),
+        _photos
+            .map((photo) => photo.copyWith(clearPreview: true))
+            .toList(growable: false),
       );
       return;
     }
@@ -481,7 +486,8 @@ class PhotoGeotagController extends ChangeNotifier {
   }
 
   Duration? _parseOffset(String input) {
-    final match = RegExp(r'^([+-])?(\d{1,2}):(\d{2}):(\d{2})$').firstMatch(input.trim());
+    final match =
+        RegExp(r'^([+-])?(\d{1,2}):(\d{2}):(\d{2})$').firstMatch(input.trim());
     if (match == null) {
       return null;
     }
@@ -527,9 +533,10 @@ class PhotoGeotagController extends ChangeNotifier {
             readSource: (picked.path != null && picked.path!.isNotEmpty)
                 ? picked.path
                 : picked.identifier,
-            writeSource: (picked.identifier != null && picked.identifier!.isNotEmpty)
-                ? picked.identifier
-                : picked.path,
+            writeSource:
+                (picked.identifier != null && picked.identifier!.isNotEmpty)
+                    ? picked.identifier
+                    : picked.path,
             cachePath: picked.path,
           ),
         )

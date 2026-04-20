@@ -48,7 +48,8 @@ class SettingsScreen extends StatelessWidget {
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(textController.text.trim()),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(textController.text.trim()),
               child: const Text('保存'),
             ),
           ],
@@ -148,11 +149,13 @@ class SettingsScreen extends StatelessWidget {
                             scrollController: FixedExtentScrollController(
                                 initialItem: hIndex),
                             itemExtent: 40.0,
-                            onSelectedItemChanged: (int index) => hIndex = index,
+                            onSelectedItemChanged: (int index) =>
+                                hIndex = index,
                             children: List.generate(
                                 24,
                                 (index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')))),
+                                    child: Text(
+                                        index.toString().padLeft(2, '0')))),
                           ),
                         ),
                       ),
@@ -163,11 +166,13 @@ class SettingsScreen extends StatelessWidget {
                             scrollController: FixedExtentScrollController(
                                 initialItem: mIndex),
                             itemExtent: 40.0,
-                            onSelectedItemChanged: (int index) => mIndex = index,
+                            onSelectedItemChanged: (int index) =>
+                                mIndex = index,
                             children: List.generate(
                                 60,
                                 (index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')))),
+                                    child: Text(
+                                        index.toString().padLeft(2, '0')))),
                           ),
                         ),
                       ),
@@ -178,11 +183,13 @@ class SettingsScreen extends StatelessWidget {
                             scrollController: FixedExtentScrollController(
                                 initialItem: sIndex),
                             itemExtent: 40.0,
-                            onSelectedItemChanged: (int index) => sIndex = index,
+                            onSelectedItemChanged: (int index) =>
+                                sIndex = index,
                             children: List.generate(
                                 60,
                                 (index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')))),
+                                    child: Text(
+                                        index.toString().padLeft(2, '0')))),
                           ),
                         ),
                       ),
@@ -292,7 +299,7 @@ class SettingsScreen extends StatelessWidget {
 
   void _showRecordIntervalPicker(BuildContext context) {
     if (trackRecorderController == null) return;
-    
+
     // Convert current interval in seconds to an index for the picker.
     // e.g., 1 sec -> 0, 2 sec -> 1, ..., 30 sec -> 29.
     int currentSeconds = trackRecorderController!.recordIntervalSeconds;
@@ -323,10 +330,11 @@ class SettingsScreen extends StatelessWidget {
                   child: Semantics(
                     label: '轨迹记录频率秒数',
                     child: CupertinoPicker(
-                      scrollController:
-                          FixedExtentScrollController(initialItem: intervalIndex),
+                      scrollController: FixedExtentScrollController(
+                          initialItem: intervalIndex),
                       itemExtent: 40.0,
-                      onSelectedItemChanged: (int index) => intervalIndex = index,
+                      onSelectedItemChanged: (int index) =>
+                          intervalIndex = index,
                       children: List.generate(
                           60, (index) => Center(child: Text('${index + 1}'))),
                     ),
@@ -337,7 +345,8 @@ class SettingsScreen extends StatelessWidget {
                       horizontal: 16.0, vertical: 8.0),
                   child: FilledButton(
                     onPressed: () {
-                      trackRecorderController!.updateRecordInterval(intervalIndex + 1);
+                      trackRecorderController!
+                          .updateRecordInterval(intervalIndex + 1);
                       Navigator.pop(bottomSheetContext);
                     },
                     style: FilledButton.styleFrom(
@@ -366,6 +375,20 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -374,7 +397,11 @@ class SettingsScreen extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: AnimatedBuilder(
-            animation: Listenable.merge([controller, appController, if (trackRecorderController != null) trackRecorderController!]),
+            animation: Listenable.merge([
+              controller,
+              appController,
+              if (trackRecorderController != null) trackRecorderController!
+            ]),
             builder: (context, _) {
               final exportPreviewPath = controller.writeToOriginal
                   ? '原图保持原文件名，直接写回所选照片'
@@ -383,15 +410,77 @@ class SettingsScreen extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.only(bottom: 88, top: 16),
                 children: [
+                  _buildSectionHeader(context, '常规设置'),
+                  ListTile(
+                    leading: const Icon(Icons.palette_outlined),
+                    title: const Text('外观'),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+                      child: SegmentedButton<ThemeMode>(
+                        segments: const [
+                          ButtonSegment(
+                              value: ThemeMode.system,
+                              icon: Icon(Icons.brightness_auto),
+                              label: Text('系统')),
+                          ButtonSegment(
+                              value: ThemeMode.light,
+                              icon: Icon(Icons.light_mode),
+                              label: Text('浅色')),
+                          ButtonSegment(
+                              value: ThemeMode.dark,
+                              icon: Icon(Icons.dark_mode),
+                              label: Text('深色')),
+                        ],
+                        selected: {appController.themeMode},
+                        onSelectionChanged: (Set<ThemeMode> newSelection) {
+                          appController.updateThemeMode(newSelection.first);
+                        },
+                      ),
+                    ),
+                  ),
                   if (trackRecorderController != null) ...[
+                    const Divider(height: 32),
+                    _buildSectionHeader(context, '轨迹记录'),
                     ListTile(
-                      leading: const Icon(Icons.speed),
-                      title: const Text('轨迹记录频率'),
-                      subtitle: Text('${trackRecorderController!.recordIntervalSeconds} 秒/次'),
+                      leading: const Icon(Icons.speed_outlined),
+                      title: const Text('记录频率'),
+                      subtitle: Text(
+                          '${trackRecorderController!.recordIntervalSeconds} 秒/次'),
                       onTap: () => _showRecordIntervalPicker(context),
                     ),
-                    const Divider(height: 32),
                   ],
+                  const Divider(height: 32),
+                  _buildSectionHeader(context, '照片匹配规则'),
+                  ListTile(
+                    leading: const Icon(Icons.schedule_outlined),
+                    title: const Text('相机时间校准'),
+                    subtitle: Text(controller.offsetInput),
+                    onTap: () => _showOffsetPicker(context),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.timer_outlined),
+                    title: const Text('允许的最大时间差'),
+                    subtitle: Text('${controller.maxGapMinutes} 分钟'),
+                    onTap: () => _showGapPicker(context),
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.gps_fixed_outlined),
+                    value: controller.overwriteExistingGps,
+                    title: const Text('覆盖已有位置'),
+                    subtitle: const Text('关闭时，将跳过已含位置信息的照片'),
+                    onChanged: (value) {
+                      controller.updateSettings(
+                        offsetInput: controller.offsetInput,
+                        maxGapMinutes: controller.maxGapMinutes,
+                        overwriteExistingGps: value,
+                        exportFolderName: controller.exportFolderName,
+                        exportFileSuffix: controller.exportFileSuffix,
+                        writeToOriginal: controller.writeToOriginal,
+                      );
+                    },
+                  ),
+                  const Divider(height: 32),
+                  _buildSectionHeader(context, '导出与保存'),
                   ListTile(
                     leading: const Icon(Icons.photo_camera_back_outlined),
                     title: const Text('位置写入方式'),
@@ -415,7 +504,8 @@ class SettingsScreen extends StatelessWidget {
                           controller.updateSettings(
                             offsetInput: controller.offsetInput,
                             maxGapMinutes: controller.maxGapMinutes,
-                            overwriteExistingGps: controller.overwriteExistingGps,
+                            overwriteExistingGps:
+                                controller.overwriteExistingGps,
                             exportFolderName: controller.exportFolderName,
                             exportFileSuffix: controller.exportFileSuffix,
                             writeToOriginal: selection.first,
@@ -424,82 +514,45 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.palette),
-                    title: const Text('外观'),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-                      child: SegmentedButton<ThemeMode>(
-                        segments: const [
-                          ButtonSegment(
-                              value: ThemeMode.system,
-                              icon: Icon(Icons.brightness_auto),
-                              label: Text('系统')),
-                          ButtonSegment(
-                              value: ThemeMode.light,
-                              icon: Icon(Icons.light_mode),
-                              label: Text('浅色')),
-                          ButtonSegment(
-                              value: ThemeMode.dark,
-                              icon: Icon(Icons.dark_mode),
-                              label: Text('深色')),
-                        ],
-                         selected: {appController.themeMode},
-                         onSelectionChanged: (Set<ThemeMode> newSelection) {
-                           appController.updateThemeMode(newSelection.first);
-                         },
-                       ),
+                  if (!controller.writeToOriginal) ...[
+                    ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: const Text('照片保存位置'),
+                      subtitle: Text(
+                        'Pictures/${controller.exportFolderName}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _pickExportFolder(context),
                     ),
-                  ),
-                  const Divider(height: 32),
-                  ListTile(
-                    leading: const Icon(Icons.schedule),
-                    title: const Text('相机时间校准'),
-                    subtitle: Text(controller.offsetInput),
-                    onTap: () => _showOffsetPicker(context),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.timer),
-                    title: const Text('允许的最大时间差'),
-                    subtitle: Text('${controller.maxGapMinutes} 分钟'),
-                    onTap: () => _showGapPicker(context),
-                  ),
-                  const Divider(height: 32),
-                  ListTile(
-                    leading: const Icon(Icons.folder_outlined),
-                    title: const Text('照片保存位置'),
-                    subtitle: Text(
-                      'Pictures/${controller.exportFolderName}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _pickExportFolder(context),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.drive_file_rename_outline),
-                    title: const Text('导出文件名后缀'),
-                    subtitle: Text(
-                      controller.exportFileSuffix.isEmpty ? '不追加后缀' : controller.exportFileSuffix,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () => _showTextSettingDialog(
-                      context: context,
-                      title: '导出文件名后缀',
-                      label: '后缀',
-                      initialValue: controller.exportFileSuffix,
-                      helperText: '例如 _gps_copy，导出时会追加到文件名',
-                      onSave: (value) => controller.updateSettings(
-                        offsetInput: controller.offsetInput,
-                        maxGapMinutes: controller.maxGapMinutes,
-                        overwriteExistingGps: controller.overwriteExistingGps,
-                        exportFolderName: controller.exportFolderName,
-                        exportFileSuffix: value,
-                        writeToOriginal: controller.writeToOriginal,
+                    ListTile(
+                      leading: const Icon(Icons.drive_file_rename_outline),
+                      title: const Text('导出文件名后缀'),
+                      subtitle: Text(
+                        controller.exportFileSuffix.isEmpty
+                            ? '不追加后缀'
+                            : controller.exportFileSuffix,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => _showTextSettingDialog(
+                        context: context,
+                        title: '导出文件名后缀',
+                        label: '后缀',
+                        initialValue: controller.exportFileSuffix,
+                        helperText: '例如 _gps_copy，导出时会追加到文件名',
+                        onSave: (value) => controller.updateSettings(
+                          offsetInput: controller.offsetInput,
+                          maxGapMinutes: controller.maxGapMinutes,
+                          overwriteExistingGps: controller.overwriteExistingGps,
+                          exportFolderName: controller.exportFolderName,
+                          exportFileSuffix: value,
+                          writeToOriginal: controller.writeToOriginal,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   ListTile(
                     leading: const Icon(Icons.visibility_outlined),
                     title: const Text('导出效果预览'),
@@ -509,30 +562,14 @@ class SettingsScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const Divider(height: 32),
+                  _buildSectionHeader(context, '其他'),
                   ListTile(
                     leading: const Icon(Icons.cleaning_services_outlined),
                     title: const Text('清理临时缓存'),
                     subtitle: const Text('清理历史导入留下的临时副本，不影响已导出的照片'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _clearTemporaryCache(context),
-                  ),
-                  const Divider(height: 32),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.gps_fixed),
-                    value: controller.overwriteExistingGps,
-                    onChanged: (value) {
-                      final error = controller.updateSettings(
-                        offsetInput: controller.offsetInput,
-                        maxGapMinutes: controller.maxGapMinutes,
-                        overwriteExistingGps: value,
-                        exportFolderName: controller.exportFolderName,
-                        exportFileSuffix: controller.exportFileSuffix,
-                        writeToOriginal: controller.writeToOriginal,
-                      );
-                      if (error != null) return;
-                    },
-                    title: const Text('覆盖已有位置'),
-                    subtitle: const Text('关闭时，将跳过已含位置信息的照片'),
                   ),
                 ],
               );
