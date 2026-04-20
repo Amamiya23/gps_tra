@@ -36,7 +36,7 @@
 
 ## 使用流程
 
-**在[releases](https://github.com/Amamiya23/gps_tra/releases)界面下载并安装
+**在[releases](https://github.com/Amamiya23/gps_tra/releases)界面下载并安装**
 
 ### 方式一：导入外部轨迹后写入照片
 
