@@ -12,6 +12,8 @@
 .swiftpm/
 migrate_working_dir/
 
+.impeccable.md
+
 # IntelliJ related
 *.iml
 *.ipr
