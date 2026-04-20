@@ -122,8 +122,8 @@ class RecorderStoppedSession {
 }
 
 class LocationChannelService {
-  static const MethodChannel _channel = MethodChannel('gpx_photo_geotagger/track_recorder');
-  static const EventChannel _events = EventChannel('gpx_photo_geotagger/track_recorder_events');
+  static const MethodChannel _channel = MethodChannel('trackwrite/track_recorder');
+  static const EventChannel _events = EventChannel('trackwrite/track_recorder_events');
 
   Stream<RecorderStatusSnapshot> statusStream() {
     return _events
@@ -131,8 +131,13 @@ class LocationChannelService {
         .map((event) => RecorderStatusSnapshot.fromMap(event as Map<Object?, Object?>?));
   }
 
-  Future<RecorderStatusSnapshot> requestPermissions() async {
-    final result = await _channel.invokeMapMethod<Object?, Object?>('requestPermissions');
+  Future<RecorderStatusSnapshot> requestForegroundPermission() async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>('requestForegroundPermission');
+    return RecorderStatusSnapshot.fromMap(result);
+  }
+
+  Future<RecorderStatusSnapshot> requestBackgroundPermission() async {
+    final result = await _channel.invokeMapMethod<Object?, Object?>('requestBackgroundPermission');
     return RecorderStatusSnapshot.fromMap(result);
   }
 
@@ -166,6 +171,14 @@ class LocationChannelService {
   Future<RecorderStoppedSession> stopRecording() async {
     final result = await _channel.invokeMapMethod<Object?, Object?>('stopRecording');
     return RecorderStoppedSession.fromMap(result);
+  }
+
+  Future<void> openAppSettings() {
+    return _channel.invokeMethod<void>('openAppSettings');
+  }
+
+  Future<void> openLocationSettings() {
+    return _channel.invokeMethod<void>('openLocationSettings');
   }
 
   Future<List<RecordedTrackPoint>> getRecordedPoints([String? sessionId]) async {

@@ -7,7 +7,7 @@ class GpxExportService {
   }) {
     final buffer = StringBuffer()
       ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
-      ..writeln('<gpx version="1.1" creator="gpx_photo_geotagger" xmlns="http://www.topografix.com/GPX/1/1">')
+      ..writeln('<gpx version="1.1" creator="TrackWrite" xmlns="http://www.topografix.com/GPX/1/1">')
       ..writeln('  <trk>')
       ..writeln('    <name>${_escapeXml(name)}</name>')
       ..writeln('    <trkseg>');

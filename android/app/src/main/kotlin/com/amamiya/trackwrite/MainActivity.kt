@@ -1,4 +1,4 @@
-package com.example.gpx_photo_geotagger
+package com.amamiya.trackwrite
 
 import android.Manifest
 import android.content.ContentValues
@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.exifinterface.media.ExifInterface
@@ -20,10 +21,11 @@ import java.io.File
 import java.io.IOException
 
 class MainActivity : FlutterActivity() {
-    private val exifChannelName = "gpx_photo_geotagger/exif"
-    private val recorderChannelName = "gpx_photo_geotagger/track_recorder"
-    private val recorderEventsName = "gpx_photo_geotagger/track_recorder_events"
-    private val permissionRequestCode = 3107
+    private val exifChannelName = "trackwrite/exif"
+    private val recorderChannelName = "trackwrite/track_recorder"
+    private val recorderEventsName = "trackwrite/track_recorder_events"
+    private val foregroundPermissionRequestCode = 3107
+    private val backgroundPermissionRequestCode = 3108
     private val photoPickerRequestCode = 3109
     private var pendingPermissionResult: MethodChannel.Result? = null
     private var pendingPhotoPickerResult: MethodChannel.Result? = null
@@ -44,7 +46,16 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, recorderChannelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "requestPermissions" -> requestLocationPermissions(result)
+                    "requestForegroundPermission" -> requestForegroundLocationPermissions(result)
+                    "requestBackgroundPermission" -> requestBackgroundLocationPermission(result)
+                    "openAppSettings" -> {
+                        openAppSettings()
+                        result.success(null)
+                    }
+                    "openLocationSettings" -> {
+                        openLocationSettings()
+                        result.success(null)
+                    }
                     "getStatus" -> result.success(TrackRecordingService.payload(this))
                     "getRecordedPoints" -> getRecordedPoints(call, result)
                     "startRecording" -> startRecording(call, result)
@@ -74,7 +85,9 @@ class MainActivity : FlutterActivity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != permissionRequestCode) {
+        if (requestCode != foregroundPermissionRequestCode &&
+            requestCode != backgroundPermissionRequestCode
+        ) {
             return
         }
 
@@ -142,14 +155,11 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun requestLocationPermissions(result: MethodChannel.Result) {
+    private fun requestForegroundLocationPermissions(result: MethodChannel.Result) {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissions += Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        }
 
         val missing = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -160,7 +170,61 @@ class MainActivity : FlutterActivity() {
         }
 
         pendingPermissionResult = result
-        ActivityCompat.requestPermissions(this, missing.toTypedArray(), permissionRequestCode)
+        ActivityCompat.requestPermissions(
+            this,
+            missing.toTypedArray(),
+            foregroundPermissionRequestCode,
+        )
+    }
+
+    private fun requestBackgroundLocationPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            result.success(TrackRecordingService.payload(this))
+            return
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(TrackRecordingService.payload(this))
+            return
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(TrackRecordingService.payload(this))
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            result.success(TrackRecordingService.payload(this))
+            return
+        }
+
+        pendingPermissionResult = result
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+            backgroundPermissionRequestCode,
+        )
+    }
+
+    private fun openAppSettings() {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", packageName, null),
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
+    }
+
+    private fun openLocationSettings() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {
@@ -246,7 +310,7 @@ class MainActivity : FlutterActivity() {
         val altitude = call.argument<Double>("altitude")
         val gpsDateStamp = call.argument<String>("gpsDateStamp")
         val gpsTimeStamp = call.argument<String>("gpsTimeStamp")
-        val exportFolderName = call.argument<String>("exportFolderName") ?: "GPS Photo Geotagger"
+        val exportFolderName = call.argument<String>("exportFolderName") ?: "TrackWrite"
         val exportFileSuffix = call.argument<String>("exportFileSuffix") ?: "_gps_copy"
         val writeToOriginal = call.argument<Boolean>("writeToOriginal") ?: false
 
@@ -454,7 +518,7 @@ class MainActivity : FlutterActivity() {
             .filter { it.isNotBlank() }
 
         return if (segments.isEmpty()) {
-            "GPS Photo Geotagger"
+            "TrackWrite"
         } else {
             segments.joinToString("/")
         }

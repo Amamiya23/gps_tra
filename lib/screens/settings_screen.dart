@@ -425,18 +425,6 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.schedule),
-                    title: const Text('相机时间校准'),
-                    subtitle: Text(controller.offsetInput),
-                    onTap: () => _showOffsetPicker(context),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.timer),
-                    title: const Text('允许的最大时间差'),
-                    subtitle: Text('${controller.maxGapMinutes} 分钟'),
-                    onTap: () => _showGapPicker(context),
-                  ),
-                  ListTile(
                     leading: const Icon(Icons.palette),
                     title: const Text('外观'),
                     subtitle: Padding(
@@ -462,6 +450,19 @@ class SettingsScreen extends StatelessWidget {
                          },
                        ),
                     ),
+                  ),
+                  const Divider(height: 32),
+                  ListTile(
+                    leading: const Icon(Icons.schedule),
+                    title: const Text('相机时间校准'),
+                    subtitle: Text(controller.offsetInput),
+                    onTap: () => _showOffsetPicker(context),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.timer),
+                    title: const Text('允许的最大时间差'),
+                    subtitle: Text('${controller.maxGapMinutes} 分钟'),
+                    onTap: () => _showGapPicker(context),
                   ),
                   const Divider(height: 32),
                   ListTile(

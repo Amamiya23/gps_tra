@@ -26,14 +26,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  fonts:
-    - family: NotoSansSC
-      fonts:
-        - asset: assets/fonts/NotoSansCJKsc-Regular.otf
-          weight: 400
-        - asset: assets/fonts/NotoSansCJKsc-Medium.otf
-          weight: 500
-    - family: NotoSerifSC
-      fonts:
-        - asset: assets/fonts/NotoSerifCJKsc-Bold.otf
-          weight: 700

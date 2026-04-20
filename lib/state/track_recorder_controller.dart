@@ -16,6 +16,7 @@ import '../services/track_file_service.dart';
 
 class TrackRecorderController extends ChangeNotifier {
   static const _recordIntervalSecondsKey = 'track.record_interval_seconds';
+  static const _initialLocationPromptedKey = 'track.initial_location_prompted';
 
   TrackRecorderController({
     TrackHistoryRepository? repository,
@@ -123,20 +124,48 @@ class TrackRecorderController extends ChangeNotifier {
     }
   }
 
-  Future<void> requestPermissions() async {
+  Future<void> requestForegroundPermission({bool showMessages = true}) async {
     try {
-      final status = await _locationService.requestPermissions();
+      final status = await _locationService.requestForegroundPermission();
       _applySnapshot(status);
-      if (!_locationPermissionGranted) {
+      if (showMessages && !_locationPermissionGranted) {
         _pendingMessage = '定位权限仍未授予。';
-      } else if (!_backgroundPermissionGranted) {
-        _pendingMessage = '后台定位权限尚未开启，后台记录可能受限。';
       }
       notifyListeners();
     } catch (error) {
-      _pendingMessage = '请求权限失败：$error';
+      if (showMessages) {
+        _pendingMessage = '请求定位权限失败：$error';
+      }
       notifyListeners();
     }
+  }
+
+  Future<void> requestBackgroundPermission({bool showMessages = true}) async {
+    try {
+      final status = await _locationService.requestBackgroundPermission();
+      _applySnapshot(status);
+      if (showMessages && !_backgroundPermissionGranted) {
+        _pendingMessage = '后台定位尚未开启，切到后台后可能中断记录。';
+      }
+      notifyListeners();
+    } catch (error) {
+      if (showMessages) {
+        _pendingMessage = '请求后台定位失败：$error';
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> maybePromptInitialLocationPermission() async {
+    final preferences = _preferences;
+    if (preferences == null) {
+      return;
+    }
+    if (preferences.getBool(_initialLocationPromptedKey) ?? false) {
+      return;
+    }
+    await preferences.setBool(_initialLocationPromptedKey, true);
+    await requestForegroundPermission(showMessages: false);
   }
 
   Future<void> refreshStatus() async {
@@ -172,11 +201,19 @@ class TrackRecorderController extends ChangeNotifier {
   }
 
   Future<void> startRecording() async {
-    if (!_locationPermissionGranted || !_backgroundPermissionGranted) {
-      await requestPermissions();
+    if (!_locationPermissionGranted) {
+      await requestForegroundPermission();
     }
     if (!_locationPermissionGranted) {
       _pendingMessage = '未获得定位权限，无法开始记录。';
+      notifyListeners();
+      return;
+    }
+    if (!_backgroundPermissionGranted) {
+      await requestBackgroundPermission();
+    }
+    if (!_backgroundPermissionGranted) {
+      _pendingMessage = '后台定位未开启，请先在系统权限页中允许后台定位。';
       notifyListeners();
       return;
     }
@@ -528,5 +565,13 @@ class TrackRecorderController extends ChangeNotifier {
   void dispose() {
     _statusSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> openAppPermissionSettings() {
+    return _locationService.openAppSettings();
+  }
+
+  Future<void> openLocationSettings() {
+    return _locationService.openLocationSettings();
   }
 }

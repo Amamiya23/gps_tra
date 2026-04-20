@@ -1,6 +1,6 @@
 # Android Studio 运行说明
 
-本文档说明如何在本机通过 Android Studio 打开并运行 `gpx_photo_geotagger`。
+本文档说明如何在本机通过 Android Studio 打开并运行 `TrackWrite`。
 
 ## 当前本地环境
 
@@ -114,7 +114,7 @@ SDK 路径填：
 
 启动成功后，应用首页会显示：
 
-- `GPX 照片定位器`
+- `TrackWrite`
 - `选择 GPX`
 - `选择 JPG`
 - `开始写入 GPS EXIF`
@@ -220,7 +220,7 @@ cd /home/cat/gps_tra
 - 状态控制：`lib/state/app_controller.dart`
 - GPX 解析：`lib/services/gpx_parser_service.dart`
 - 时间匹配：`lib/services/location_match_service.dart`
-- Android EXIF 写入：`android/app/src/main/kotlin/com/example/gpx_photo_geotagger/MainActivity.kt`
+- Android EXIF 写入：`android/app/src/main/kotlin/com/amamiya/trackwrite/MainActivity.kt`
 
 ## 结论
 

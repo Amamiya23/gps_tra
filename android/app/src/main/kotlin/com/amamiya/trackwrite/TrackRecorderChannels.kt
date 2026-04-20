@@ -1,4 +1,4 @@
-package com.example.gpx_photo_geotagger
+package com.amamiya.trackwrite
 
 import io.flutter.plugin.common.EventChannel
 

@@ -74,7 +74,7 @@ class _GpxPhotoGeotaggerAppState extends State<GpxPhotoGeotaggerApp> {
         return DynamicColorBuilder(
           builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
             return MaterialApp(
-              title: 'GPX 照片定位器',
+              title: 'TrackWrite',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light(lightDynamic),
               darkTheme: AppTheme.dark(darkDynamic),

@@ -7,7 +7,7 @@ import '../models/photo_metadata.dart';
 
 class ExifChannelService {
   static const MethodChannel _channel =
-      MethodChannel('gpx_photo_geotagger/exif');
+      MethodChannel('trackwrite/exif');
 
   Future<PhotoMetadata> readMetadata(String source) async {
     _ensureAndroid();

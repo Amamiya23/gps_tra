@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/gpx_track_point.dart';
@@ -32,6 +34,9 @@ class _ShellScreenState extends State<ShellScreen> {
   void initState() {
     super.initState();
     widget.trackRecorderController.load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(widget.trackRecorderController.maybePromptInitialLocationPermission());
+    });
   }
 
   @override
@@ -40,16 +45,16 @@ class _ShellScreenState extends State<ShellScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          HomeScreen(
-            controller: widget.photoController,
-            appController: widget.appController,
-            trackRecorderController: widget.trackRecorderController,
-          ),
           TrackRecorderScreen(
             controller: widget.trackRecorderController,
             appController: widget.appController,
             photoController: widget.photoController,
             onUseForGeotag: _useTrackForGeotag,
+          ),
+          HomeScreen(
+            controller: widget.photoController,
+            appController: widget.appController,
+            trackRecorderController: widget.trackRecorderController,
           ),
           SettingsScreen(
             controller: widget.photoController,
@@ -68,14 +73,14 @@ class _ShellScreenState extends State<ShellScreen> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.photo_library_outlined),
-            selectedIcon: Icon(Icons.photo_library),
-            label: '写入照片',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.route_outlined),
             selectedIcon: Icon(Icons.route),
             label: '记录轨迹',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.photo_library_outlined),
+            selectedIcon: Icon(Icons.photo_library),
+            label: '写入照片',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
@@ -108,7 +113,7 @@ class _ShellScreenState extends State<ShellScreen> {
     );
 
     setState(() {
-      _currentIndex = 0;
+      _currentIndex = 1;
     });
   }
 }

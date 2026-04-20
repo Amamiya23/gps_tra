@@ -26,10 +26,23 @@ class TrackRecorderScreen extends StatefulWidget {
 }
 
 class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
+  AppLifecycleListener? _lifecycleListener;
+
   @override
   void initState() {
     super.initState();
     widget.controller.load();
+    _lifecycleListener = AppLifecycleListener(
+      onResume: () {
+        unawaited(widget.controller.refreshStatus());
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener?.dispose();
+    super.dispose();
   }
 
   @override
@@ -50,11 +63,6 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 24),
                   children: [
-                    AnimatedBuilder(
-                      animation: controller,
-                      builder: (context, _) =>
-                          _buildStatusStrip(context, controller),
-                    ),
                     AnimatedBuilder(
                       animation: controller,
                       builder: (context, _) {
@@ -92,59 +100,6 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
     );
   }
 
-  Widget _buildStatusStrip(
-      BuildContext context, TrackRecorderController controller) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(Icons.shield_outlined,
-                    size: 16, color: colorScheme.primary),
-                label: Text(
-                  controller.locationPermissionGranted
-                      ? controller.backgroundPermissionGranted
-                          ? '定位已授权'
-                          : '缺少后台定位'
-                      : '定位未授权',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              Chip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(Icons.notifications_active_outlined,
-                    size: 16, color: colorScheme.primary),
-                label: Text(
-                  controller.locationEnabled ? '服务已开启' : '服务未开启',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-              Chip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(_statusIcon(controller.recordingState),
-                    size: 16,
-                    color: _statusColor(context, controller.recordingState)),
-                label: Text(
-                  _statusChipLabel(controller.recordingState),
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildGuidancePanel(
     BuildContext context,
     TrackRecorderController controller,
@@ -155,9 +110,13 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
         !controller.backgroundPermissionGranted) {
       actions.add(
         FilledButton.icon(
-          onPressed: _handlePermissionRequest,
+          onPressed: !controller.locationPermissionGranted
+              ? _handleForegroundPermissionRequest
+              : _openAppPermissionSettings,
           icon: const Icon(Icons.verified_user_outlined),
-          label: const Text('请求定位权限'),
+          label: Text(
+            !controller.locationPermissionGranted ? '请求定位权限' : '开启后台定位',
+          ),
         ),
       );
     }
@@ -165,9 +124,16 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
     if (!controller.locationEnabled) {
       actions.add(
         OutlinedButton.icon(
+          onPressed: _openLocationSettings,
+          icon: const Icon(Icons.my_location_outlined),
+          label: const Text('打开定位设置'),
+        ),
+      );
+      actions.add(
+        OutlinedButton.icon(
           onPressed: controller.refreshStatus,
           icon: const Icon(Icons.refresh),
-          label: const Text('已开启，刷新重试'),
+          label: const Text('返回后刷新'),
         ),
       );
     }
@@ -322,28 +288,26 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.tune,
-                      size: 16, color: colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      isIdle
-                          ? '采样配置: ${controller.recordIntervalSeconds}秒/次'
-                          : '采样: ${controller.currentSamplingQualityLabel}'
-                              '${controller.currentAverageSampleIntervalSeconds <= 0 ? '' : ' · 间隔${controller.currentAverageSampleIntervalSeconds.toStringAsFixed(1)}s'}'
-                              '${controller.currentAverageAccuracyMeters == null ? '' : ' · 精度${controller.currentAverageAccuracyMeters!.toStringAsFixed(0)}m'}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: colorScheme.onSurfaceVariant),
+              if (isIdle) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.tune,
+                        size: 16, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '采样配置: ${controller.recordIntervalSeconds}秒/次',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               if (controller.currentPoints.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -636,28 +600,6 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
     );
   }
 
-  String _statusChipLabel(TrackRecordingState state) {
-    switch (state) {
-      case TrackRecordingState.idle:
-        return '待开始';
-      case TrackRecordingState.recording:
-        return '记录中';
-      case TrackRecordingState.paused:
-        return '已暂停';
-    }
-  }
-
-  IconData _statusIcon(TrackRecordingState state) {
-    switch (state) {
-      case TrackRecordingState.idle:
-        return Icons.radio_button_unchecked;
-      case TrackRecordingState.recording:
-        return Icons.fiber_manual_record;
-      case TrackRecordingState.paused:
-        return Icons.pause_circle_outline;
-    }
-  }
-
   Color _statusColor(BuildContext context, TrackRecordingState state) {
     final colorScheme = Theme.of(context).colorScheme;
     switch (state) {
@@ -695,9 +637,8 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
 
   Future<void> _handleStartRecording() async {
     final controller = widget.controller;
-    if (!controller.locationPermissionGranted ||
-        !controller.backgroundPermissionGranted) {
-      await controller.requestPermissions();
+    if (!controller.locationPermissionGranted) {
+      await controller.requestForegroundPermission();
       if (!mounted) {
         return;
       }
@@ -707,10 +648,23 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
         return;
       }
 
-      if (!controller.backgroundPermissionGranted) {
-        await _showBackgroundPermissionDialog();
+    }
+
+    if (!controller.backgroundPermissionGranted) {
+      await controller.requestBackgroundPermission();
+      if (!mounted) {
         return;
       }
+      if (controller.backgroundPermissionGranted) {
+        if (!controller.locationEnabled) {
+          await _showLocationGuideDialog();
+          return;
+        }
+        await controller.startRecording();
+        return;
+      }
+      await _showBackgroundPermissionDialog();
+      return;
     }
 
     if (!controller.locationEnabled) {
@@ -721,21 +675,23 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
     await controller.startRecording();
   }
 
-  Future<void> _handlePermissionRequest() async {
-    await widget.controller.requestPermissions();
+  Future<void> _handleForegroundPermissionRequest() async {
+    await widget.controller.requestForegroundPermission();
     if (!mounted) {
       return;
     }
 
-    final controller = widget.controller;
-    if (!controller.locationPermissionGranted) {
+    if (!widget.controller.locationPermissionGranted) {
       await _showPermissionDeniedDialog();
-      return;
     }
+  }
 
-    if (!controller.backgroundPermissionGranted) {
-      await _showBackgroundPermissionDialog();
-    }
+  Future<void> _openAppPermissionSettings() async {
+    await widget.controller.openAppPermissionSettings();
+  }
+
+  Future<void> _openLocationSettings() async {
+    await widget.controller.openLocationSettings();
   }
 
   Future<void> _showPermissionDeniedDialog() async {
@@ -745,9 +701,16 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
         return AlertDialog(
           title: const Text('未获得定位权限'),
           content: const Text(
-            '没有定位权限就无法开始轨迹记录。你可以重新点击“开始”或“请求定位权限”再次申请。',
+            '没有定位权限就无法开始轨迹记录。你可以重新申请，或者前往系统权限页手动开启。',
           ),
           actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await widget.controller.openAppPermissionSettings();
+              },
+              child: const Text('权限设置'),
+            ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('关闭'),
@@ -765,9 +728,16 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
         return AlertDialog(
           title: const Text('还缺少后台定位权限'),
           content: const Text(
-            '系统已经授予基础定位权限，但后台定位权限仍未开启。\n\n如果现在开始记录，切到后台后系统可能会停止采样。你可以先去系统权限页面补开，再回来点击“已打开定位后刷新”。',
+            '系统已经授予基础定位权限，但后台定位仍未开启。\n\n如果现在开始记录，切到后台后系统可能会停止采样。请先前往应用权限页，把定位改为始终允许或允许后台访问。',
           ),
           actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await widget.controller.openAppPermissionSettings();
+              },
+              child: const Text('去权限设置'),
+            ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('关闭'),
@@ -785,9 +755,16 @@ class _TrackRecorderScreenState extends State<TrackRecorderScreen> {
         return AlertDialog(
           title: const Text('请先打开系统定位'),
           content: const Text(
-            '当前系统定位服务没有开启。\n\n请在系统设置中打开定位服务，然后回到这里点击“已打开定位后刷新”，再开始记录。',
+            '当前系统定位服务没有开启。\n\n请先在系统设置中打开定位服务，返回应用后再刷新状态。',
           ),
           actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await widget.controller.openLocationSettings();
+              },
+              child: const Text('打开定位设置'),
+            ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('关闭'),

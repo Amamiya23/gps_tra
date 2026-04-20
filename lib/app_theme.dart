@@ -197,7 +197,6 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: surfaces.background,
       canvasColor: surfaces.background,
-      fontFamily: 'NotoSansSC',
       extensions: <ThemeExtension<dynamic>>[surfaces],
       textTheme: _textTheme(
         brightness == Brightness.light
@@ -336,7 +335,6 @@ class AppTheme {
   ) {
     return base.copyWith(
       displaySmall: base.displaySmall?.copyWith(
-        fontFamily: 'NotoSerifSC',
         fontWeight: FontWeight.w700,
         fontSize: 34,
         height: 1.1,
@@ -344,7 +342,6 @@ class AppTheme {
         color: onSurface,
       ),
       headlineMedium: base.headlineMedium?.copyWith(
-        fontFamily: 'NotoSerifSC',
         fontWeight: FontWeight.w700,
         fontSize: 28,
         height: 1.12,

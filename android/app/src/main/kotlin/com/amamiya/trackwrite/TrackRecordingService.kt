@@ -1,4 +1,4 @@
-package com.example.gpx_photo_geotagger
+package com.amamiya.trackwrite
 
 import android.Manifest
 import android.app.Notification
@@ -30,10 +30,10 @@ import kotlin.math.max
 
 class TrackRecordingService : Service() {
     companion object {
-        const val actionStart = "com.example.gpx_photo_geotagger.action.START"
-        const val actionPause = "com.example.gpx_photo_geotagger.action.PAUSE"
-        const val actionResume = "com.example.gpx_photo_geotagger.action.RESUME"
-        const val actionStop = "com.example.gpx_photo_geotagger.action.STOP"
+        const val actionStart = "com.amamiya.trackwrite.action.START"
+        const val actionPause = "com.amamiya.trackwrite.action.PAUSE"
+        const val actionResume = "com.amamiya.trackwrite.action.RESUME"
+        const val actionStop = "com.amamiya.trackwrite.action.STOP"
 
         const val notificationChannelId = "track_recording"
         const val notificationId = 1001
