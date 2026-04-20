@@ -8,9 +8,8 @@
 - 希望在手机上直接完成轨迹记录、照片匹配、位置写回，而不是回到电脑上处理
 
 项目基于 Flutter 开发，当前目标平台为 Android，整体强调离线、本地处理、工具化体验。
+![alt text](assets/IMG_20260420_170446.jpg)
 
-![alt text](assets/Screenshot_2026-04-20-16-48-06-426_com.amamiya.trackwrite.jpg)
-![alt text](assets/Screenshot_2026-04-20-16-48-32-123_com.amamiya.trackwrite.jpg)
 ## 主要功能
 
 - 导入外部 GPX 文件
