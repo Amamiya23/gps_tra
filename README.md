@@ -1,15 +1,16 @@
 # TrackWrite
 
-`TrackWrite` 是一个面向摄影用户的 Android 工具应用，用来把轨迹位置写回照片。
+`TrackWrite` 是一个面向摄影用户的 Android 工具应用，用来记录位置信息并写入照片。
 
 它主要解决这样一类场景：
 
-- 旅行、扫街、徒步或拍摄结束后，手里有一份 GPX 轨迹和一批 JPG 照片
-- 照片本身没有 GPS，或者想根据更准确的轨迹重新补全位置
-- 希望在手机上直接完成轨迹导入、照片匹配、位置写回，而不是再回到电脑上处理
+- 照片本身没有 GPS，而相机app虽然有记录位置功能但经常断连，大部分照片未被记录上位置
+- 希望在手机上直接完成轨迹记录、照片匹配、位置写回，而不是回到电脑上处理
 
 项目基于 Flutter 开发，当前目标平台为 Android，整体强调离线、本地处理、工具化体验。
 
+![alt text](assets/Screenshot_2026-04-20-16-48-06-426_com.amamiya.trackwrite.jpg)
+![alt text](assets/Screenshot_2026-04-20-16-48-32-123_com.amamiya.trackwrite.jpg)
 ## 主要功能
 
 - 导入外部 GPX 文件
@@ -68,17 +69,6 @@
 - 当系统定位服务关闭时，应用会引导用户跳转到系统定位设置
 - 照片写入优先使用系统选择器返回的可写 URI，避免不必要的文件权限申请
 
-## 技术栈
-
-- Flutter
-- Dart
-- Kotlin
-- Material 3
-- `xml`：解析 GPX
-- `shared_preferences`：保存本地设置
-- `sqflite`：保存历史轨迹与草稿
-- `file_picker`：选择 GPX 和照片
-- `share_plus`：分享导出的轨迹文件
 
 ## 项目结构
 
@@ -136,30 +126,3 @@ flutter build apk --release --split-per-abi
 flutter build appbundle --release
 ```
 
-## Android 原生说明
-
-项目中 Android 侧包含一些 Flutter 默认模板之外的实现，主要包括：
-
-- EXIF 读取与 GPS 写入
-- 轨迹记录相关的 MethodChannel / EventChannel
-- 后台轨迹记录服务
-- Android 权限与系统设置跳转
-
-因此如果重新生成 Android 工程模板，需特别留意以下目录中的实现不要被覆盖：
-
-- [android/app/src/main/kotlin/com/amamiya/trackwrite](/D:/Amamiya/Program/gps_tra/android/app/src/main/kotlin/com/amamiya/trackwrite)
-
-## 相关文档
-
-- [Android Studio 运行说明](/D:/Amamiya/Program/gps_tra/docs/ANDROID_STUDIO_RUN.md)
-
-## 项目定位
-
-`TrackWrite` 不是地图社交产品，也不是运动打卡产品。
-
-它更像一个稳定、直接、低噪音的系统工具：
-
-- 先完成操作，再解释
-- 关注高频使用场景
-- 尽量减少无效点击
-- 让导入、记录、写入、异常状态都足够清晰
