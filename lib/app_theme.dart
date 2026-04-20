@@ -304,7 +304,7 @@ class AppTheme {
         linearTrackColor: surfaces.panelMuted,
       ),
       snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.fixed,
         backgroundColor: surfaces.panelStrong,
         contentTextStyle: base.textTheme.bodyMedium?.copyWith(
           color: brightness == Brightness.light

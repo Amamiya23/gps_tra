@@ -27,16 +27,34 @@ class ExifChannelService {
     );
   }
 
-  Future<void> writeGpsMetadata({
+  Future<List<PickedPhotoSource>> pickWritablePhotos() async {
+    _ensureAndroid();
+
+    final result = await _channel.invokeListMethod<dynamic>('pickWritablePhotos');
+    return (result ?? const [])
+        .whereType<Map<dynamic, dynamic>>()
+        .map(
+          (item) => PickedPhotoSource(
+            source: item['source'] as String,
+            name: item['name'] as String,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<ExifWriteResult> writeGpsMetadata({
     required String source,
     required GeoMatch location,
     required DateTime gpsTimestamp,
+    required String exportFolderName,
+    required String exportFileSuffix,
+    required bool writeToOriginal,
   }) async {
     _ensureAndroid();
 
     final utcTime = gpsTimestamp.toUtc();
 
-    await _channel.invokeMethod<void>(
+    final result = await _channel.invokeMapMethod<String, dynamic>(
       'writeGpsMetadata',
       <String, dynamic>{
         'source': source,
@@ -45,7 +63,15 @@ class ExifChannelService {
         'altitude': location.altitude,
         'gpsDateStamp': _formatGpsDateStamp(utcTime),
         'gpsTimeStamp': _formatGpsTimeStamp(utcTime),
+        'exportFolderName': exportFolderName,
+        'exportFileSuffix': exportFileSuffix,
+        'writeToOriginal': writeToOriginal,
       },
+    );
+
+    return ExifWriteResult(
+      target: result?['target'] as String?,
+      wroteToOriginal: (result?['wroteToOriginal'] as bool?) ?? false,
     );
   }
 
@@ -62,7 +88,7 @@ class ExifChannelService {
       return null;
     }
 
-    return DateTime.utc(
+    return DateTime(
       int.parse(match.group(1)!),
       int.parse(match.group(2)!),
       int.parse(match.group(3)!),
@@ -90,4 +116,24 @@ class ExifChannelService {
       throw UnsupportedError('当前版本只支持 Android。');
     }
   }
+}
+
+class PickedPhotoSource {
+  const PickedPhotoSource({
+    required this.source,
+    required this.name,
+  });
+
+  final String source;
+  final String name;
+}
+
+class ExifWriteResult {
+  const ExifWriteResult({
+    required this.target,
+    required this.wroteToOriginal,
+  });
+
+  final String? target;
+  final bool wroteToOriginal;
 }
